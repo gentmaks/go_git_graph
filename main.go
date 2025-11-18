@@ -6,17 +6,31 @@ import (
 	"strings"
 	"log"
 	"os"
+	"os/user"
 )
 func scan(path string) {
 	fmt.Printf("Found folders: \n\n")
-	folders := scanGitFolders(make([]string, 0), path)
-	for _, file := range(folders) {
+	repos := recursiveScanFolder(path)
+	for _, file := range(repos) {
 		fmt.Println(file)
 	}
-	// repos := resursiveScanFolder(path)
-	// filePath := getDotFilePath()
+	filePath := getDotFilePath()
+	fmt.Printf(filePath)
 	// addNewSliceElementToFile(filePath, repos)
 	fmt.Printf("\n\nSuccessfully added\n\n")
+}
+
+func recursiveScanFolder(path string) []string {
+	return scanGitFolders(make([]string, 0), path)
+}
+
+func getDotFilePath() string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	dotFile := usr.HomeDir + "/.gogitlocalstats"
+	return dotFile
 }
 
 func scanGitFolders(folders []string, folder string) []string {
@@ -35,7 +49,7 @@ func scanGitFolders(folders []string, folder string) []string {
 			path = folder + "/" + file.Name()
 			if file.Name() == ".git" {
 				path = strings.TrimSuffix(path, "/")
-				fmt.Println(path)
+				// fmt.Println(path)
 				folders = append(folders, path)
 				continue
 			}
