@@ -14,25 +14,4 @@ func main(){
 		return
 	}
 	stats(email)
-// 	m := map[int]int {
-// 		1: 10,
-// 		5: 20,
-// 		4: 20,
-// 		3: 90,
-// 		9: 20,
-// 		7: 70,
-// 	}
-// 	sorted_keys := sorting_map(m)
-// 	for _, key := range(sorted_keys){
-// 		fmt.Println(key)
-// 	}
-// }
-//
-// func sorting_map(m map[int]int) []int {
-// 	var keys []int
-// 	for key, _ := range(m) {
-// 		keys = append(keys, key)
-// 	}
-// 	sort.Ints(keys)
-// 	return keys
-} 
+}

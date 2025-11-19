@@ -7,18 +7,25 @@ import (
 	"os"
 	"os/user"
 	"bufio"
-	"io"
+	"github.com/go-git/go-git/v5"
 )
+
 func scan(path string) {
-	fmt.Printf("Found folders: \n\n")
-	repos := recursiveScanFolder(path)
-	for _, file := range(repos) {
-		fmt.Println(file)
-	}
-	filePath := getDotFilePath()
-	fmt.Println(filePath)
-	addNewSliceElementToFile(filePath, repos)
-	fmt.Printf("\n\nSuccessfully added\n\n")
+    fmt.Printf("Found folders:\n\n")
+    repos := recursiveScanFolder(path)
+
+    // Filter out non-Git folders just in case
+    validRepos := make([]string, 0, len(repos))
+    for _, repoPath := range repos {
+        if _, err := git.PlainOpen(repoPath); err == nil {
+            validRepos = append(validRepos, repoPath)
+            fmt.Println(repoPath)
+        }
+    }
+
+    filePath := getDotFilePath()
+    addNewSliceElementToFile(filePath, validRepos)
+    fmt.Printf("\n\nSuccessfully added %d repos\n\n", len(validRepos))
 }
 
 func recursiveScanFolder(path string) []string {
@@ -35,29 +42,30 @@ func getDotFilePath() string {
 }
 
 func addNewSliceElementToFile(filePath string, newRepos []string) {
-	existingRepos := parseFileLinesToSlice(filePath)	
-	repos := joinSlices(newRepos, existingRepos)
-	dumpStringsSliceToFile(repos, filePath)
+    existingRepos := parseFileLinesToSlice(filePath)
+    repos := joinSlices(newRepos, existingRepos)
+    dumpStringsSliceToFile(repos, filePath)
 }
 
 func parseFileLinesToSlice(filePath string) []string {
-	f := openFile(filePath)
-	defer f.Close()
-	
-	var lines []string
-	scanner := bufio.NewScanner(f)
-	for {
-		if !scanner.Scan() {
-			break
-		}
-		lines = append(lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		if err != io.EOF {
-			panic(err)
-		}
-	}
-	return lines
+    f, err := os.Open(filePath) // read-only
+    if err != nil {
+        if os.IsNotExist(err) {
+            return []string{} // file doesn’t exist yet → empty slice
+        }
+        log.Fatal(err)
+    }
+    defer f.Close()
+
+    var lines []string
+    scanner := bufio.NewScanner(f)
+    for scanner.Scan() {
+        lines = append(lines, scanner.Text())
+    }
+    if err := scanner.Err(); err != nil {
+        log.Fatal(err)
+    }
+    return lines
 }
 
 func joinSlices(new []string, existing []string) []string {
@@ -69,13 +77,12 @@ func joinSlices(new []string, existing []string) []string {
 	return existing
 }
 
-func dumpStringsSliceToFile(repos []string , filePath string) {
-	content := strings.Join(repos, "\n")
-	if err := os.WriteFile(filePath, []byte(content), 0755); err != nil {
-		log.Fatal(err)	
-	}
+func dumpStringsSliceToFile(repos []string, filePath string) {
+    content := strings.Join(repos, "\n") + "\n" // add newline at end
+    if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+        log.Fatal(err)
+    }
 }
-
 
 func sliceContains(slice []string, val string) bool {
 	for _, v := range(slice) {

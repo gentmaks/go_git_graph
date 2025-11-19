@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 	"sort"
+	"os"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -19,19 +20,29 @@ func stats (email string) {
 }
 
 func processRepositories(email string) map[int]int {
-	filePath := getDotFilePath()
-	repos := parseFileLinesToSlice(filePath)	
-	daysInMap := daysInLastSixMonths
+    filePath := getDotFilePath()
+    repos := parseFileLinesToSlice(filePath)
+    daysInMap := daysInLastSixMonths
 
-	commits := make(map[int]int, daysInMap)
-	for i := daysInMap; i > 0; i-- {
-		commits[i] = 0	
-	}
-	
-	for _, path := range(repos) {
-		commits = fillCommits(email, path, commits)
-	}
-	return commits
+    commits := make(map[int]int, daysInMap)
+    for i := daysInMap; i > 0; i-- {
+        commits[i] = 0
+    }
+
+    for _, path := range repos {
+        // Skip missing paths
+        if _, err := os.Stat(path); os.IsNotExist(err) {
+            fmt.Printf("Skipping missing repo: %s\n", path)
+            continue
+        }
+        // Skip non-Git folders
+        if _, err := git.PlainOpen(path); err != nil {
+            fmt.Printf("Skipping non-repo path: %s\n", path)
+            continue
+        }
+        commits = fillCommits(email, path, commits)
+    }
+    return commits
 }
 
 func fillCommits (email string, path string, commits map[int]int) map[int]int{
