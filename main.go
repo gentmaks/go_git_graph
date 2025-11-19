@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"bufio"
+	"io"
 )
 func scan(path string) {
 	fmt.Printf("Found folders: \n\n")
@@ -15,8 +17,8 @@ func scan(path string) {
 		fmt.Println(file)
 	}
 	filePath := getDotFilePath()
-	fmt.Printf(filePath)
-	// addNewSliceElementToFile(filePath, repos)
+	fmt.Println(filePath)
+	addNewSliceElementToFile(filePath, repos)
 	fmt.Printf("\n\nSuccessfully added\n\n")
 }
 
@@ -31,6 +33,74 @@ func getDotFilePath() string {
 	}
 	dotFile := usr.HomeDir + "/.gogitlocalstats"
 	return dotFile
+}
+
+func addNewSliceElementToFile(filePath string, newRepos []string) {
+	existingRepos := parseFileLinesToSlice(filePath)	
+	repos := joinSlices(newRepos, existingRepos)
+	dumpStringsSliceToFile(repos, filePath)
+}
+
+func parseFileLinesToSlice(filePath string) []string {
+	f := openFile(filePath)
+	defer f.Close()
+	
+	var lines []string
+	scanner := bufio.NewScanner(f)
+	for {
+		if !scanner.Scan() {
+			break
+		}
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		if err != io.EOF {
+			panic(err)
+		}
+	}
+	return lines
+}
+
+func joinSlices(new []string, existing []string) []string {
+	for _, i := range(new) {
+		if !sliceContains(existing, i) {
+			existing = append(existing, i)
+		}
+	}		
+	return existing
+}
+
+func dumpStringsSliceToFile(repos []string , filePath string) {
+	content := strings.Join(repos, "\n")
+	if err := os.WriteFile(filePath, []byte(content), 0755); err != nil {
+		log.Fatal(err)	
+	}
+}
+
+
+func sliceContains(slice []string, val string) bool {
+	for _, v := range(slice) {
+		if v == val {
+			return true
+		}
+	}	
+	return false
+}
+
+func openFile(filePath string) *os.File {
+    f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, 0755)
+    if err != nil {
+        if os.IsNotExist(err) {
+            _, err = os.Create(filePath)
+            if err != nil {
+                panic(err)
+            }
+        } else {
+            panic(err)
+        }
+    }
+
+    return f
 }
 
 func scanGitFolders(folders []string, folder string) []string {
